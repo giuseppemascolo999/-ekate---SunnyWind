@@ -1,0 +1,278 @@
+<CsoundSynthesizer>
+<CsOptions>
+-odac
+</CsOptions>
+<CsInstruments>
+
+sr = 48000
+ksmps = 32
+nchnls = 2
+0dbfs = 2
+
+gigran ftgen 4, 0, 18192, 20, 6, 1
+gipan ftgen 5, 0, 15, 5, 0.2, 5, 0.8, 5, 0.2
+gisine ftgen 6, 0, 16384, 10, 1,0.02,0.15,0.01,0.08,0.005,0.04,0.003,0.02
+giEnv ftgen 2,0,8192,20,2,1 
+gaSend init 0
+
+giSine ftgen 10, 0, 4096, 10, 1
+gienv  ftgen 1, 0, 1000, 5, \
+0.001,  \
+100,   1, \
+600,   1, \
+300,   0.001
+giAmp  ftgen 3, 0, 1024, 5, \
+0.001,\ 
+16,    0.05, \
+24,    0.12, \
+40,    0.25, \
+56,    0.50, \
+88,    1.00, \
+104,   0.60, \
+136,   0.30, \
+152,   0.12, \
+184,   0.03, \
+224,   0.001
+
+
+instr 1 ;rumble wind 
+kinv expseg 0.001,0.001,p4,p3-0.1,p4,0.1,0.001
+kph phasor 1/p3
+kenv tablei kph, gienv, 1
+
+a1 randi p4, 100
+
+adist = tanh(a1*10)*0.7
+alp butlp adist, 250
+ahp buthp alp , 100
+out (ahp*kenv)*kinv,(ahp*kenv)*kinv
+
+endin
+
+
+instr 2 ;wind
+
+kpos  phasor (2/p3)              
+kamp  tablei kpos, giAmp, 1
+
+a1    rand p4                     
+
+adist = tanh(a1*10)*0.1
+alp   butbp adist, 500, 100
+out   alp * kamp, alp * kamp                    
+
+endin
+
+
+instr 3 ;bass
+kinv expseg 0.001,0.001,p4,p3-0.1,p4,0.1,0.001
+a1 poscil p4,  50, 10
+a2 poscil p4,  51, 10
+
+amix = a1+a2
+adist = tanh(amix*2)*0.7
+alp butlp adist, 100
+
+out alp*kinv,alp*kinv
+
+endin 
+
+
+instr 4;granular
+
+kinv expseg 0.0001, p3/32, p4, 31*p3/32, 0.001
+
+a1 diskgrain "cristallo.wav", p4/8, 20, p5, 10, 0.1, giEnv, 100
+
+outs a1*kinv, a1*kinv
+gaSend += a1*kinv
+
+endin
+
+
+instr 5  ;VOCE BASSA
+
+klfo  lfo p4, 0.10, 1
+klfo2 lfo p4, 0.25, 2
+
+kvol= klfo
+kvol = p4 + kvol
+
+kph phasor 8/p3
+kpan tablei kph, gipan, 2
+
+kran random 0.10, 0.90
+kran2 random 0.8, 1.2
+
+a1 diskgrain "voce2.wav", kvol, 10, klfo2*4, kran, kran2 , 4, 20, 0.2, 0.7
+
+alp butlp a1, 800
+aL, aR reverbsc alp, alp, 0.80, 9000
+outs (alp*0.7 + aL*0.5)*sqrt(kpan), (alp*0.7 + aR*0.5)*sqrt(1-kpan)
+
+endin
+
+
+instr 6 ;VOCI RANDOM
+
+kran random 0.1, 1
+kran2 random 0.8, 1.2
+
+a1 diskgrain "voce4.wav", p4, 40, kran2, kran, 0.4, 4, 30, 0.2, 0
+
+aL, aR reverbsc a1, a1, 0.70, 6000
+outs a1*0.7 + aL*0.5, a1*0.7 + aR*0.5
+
+endin
+
+instr 7 ;UCCELLI
+
+a1 diskgrain "uccelli.wav", p4, 10, 0.85, 1, 1, 4, 150, 0.2, 0
+
+ahp buthp a1, 1000
+aL, aR reverbsc ahp, ahp, 0.80, 9000
+outs ahp*0.7 + aL*0.5, ahp*0.7 + aR*0.5
+
+endin
+
+
+instr 8 ;LINE
+
+kenv expseg 0.001, 0.01, p4, 10, 0.001
+
+a1 poscil 0.5*kenv, 240*p5, 6
+a2 poscil 0.4*kenv, 360*p5, 6
+a3 poscil 0.3*kenv, 510*p5, 6
+
+amix = a1 + a2 + a3
+ahp buthp amix, 700
+alp butlp ahp, 16000
+aL, aR reverbsc alp, alp, 0.95, 9000
+outs alp*0.6 + aL*0.4, alp*0.6 + aR*0.4
+
+endin
+
+
+instr 9 ;LINE GLIDE
+
+kenv expseg 0.001, 0.01, p4, 10, 0.001
+kglid expseg p5, p3, p5/2
+
+a1 poscil 0.5*kenv, 240*p5*kglid, 6
+a2 poscil 0.4*kenv, 360*p5*kglid, 6
+a3 poscil 0.3*kenv, 510*p5*kglid, 6
+
+amix = a1 + a2 + a3
+ahp buthp amix, 700
+alp butlp ahp, 12000
+aL, aR reverbsc alp, alp, 0.98, 10000
+outs alp*0.4 + aL*0.6, alp*0.4 + aR*0.6
+
+endin
+
+
+instr 10  ;RISE
+
+kinv expseg 0.001, p3, 12000
+
+a1 rand p4, 100
+
+alp butlp a1, kinv
+outs alp, alp
+
+endin
+
+
+
+
+instr 99 ;EFFETTI
+  kdel = 0.30
+  kfb  = 0.7
+  kmix = 2
+
+  aIn = gaSend
+  gaSend = 0 
+
+  aDel  delayr 2
+  aTap  deltap3 kdel
+  delayw aIn + (aTap*kfb)
+
+  abp  butbp aTap, 1000, 500
+
+  
+  kroom = 0.90
+  kdamp = 6000
+  aRvL, aRvR reverbsc abp, abp, kroom, kdamp
+  arl =aRvL*0.5
+  arr =aRvR*0.5
+
+abpl butlp arl, 2000
+abpr butlp arr, 2000 
+  outs abpl*kmix, abpr*kmix
+  asum = (abpl+abpr)/2
+  dispfft(asum, 0.1, 2048)
+endin
+
+
+
+</CsInstruments>
+<CsScore>
+f 1 0 128 10 1
+ 
+i1  0   40  0.8
+i2  0   40  0.6
+i3  0   40  0.8
+i4  0   10  0.7  2
+i4  10  10  0.7  1
+i4  20  10  0.7  1.5
+i4  30  10  0.7  1
+
+i99 0 60
+
+
+///////////////////////////////////
+
+i5 45 20 0.3  
+i6 40 30 0.27
+i7 40 30 0.6
+
+
+i4  40    10     0.8  2
+i8  39.8  10     0.4   0.7
+i8  40    10     0.7   1
+
+i8  50    10     0.4   0.7
+
+i8  59.8  10     0.3   0.5
+i8  60    10     0.5   1.3
+
+i8  70    10     0.1   1
+i9  70    20     0.9   0.5
+
+i6  73.3  56.7   0.37
+i7  73.3  56.7   0.7
+
+///////////////////////////////////
+
+
+i1  70  60  0.8
+i2  70  60  0.6
+i3  70  60  0.8
+
+i10 95  35  0.2
+</CsScore>
+</CsoundSynthesizer>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
